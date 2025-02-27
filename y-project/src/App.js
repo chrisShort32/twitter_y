@@ -9,40 +9,32 @@ function App() {
   const[userData, setUserData] = useState([]); //this is used for the table that displays user data
 
   //This will yell at the user if they dont enter a username
-  const checkUsername = () => {
+  const checkUsername = async () => {
     if (username.trim() === '') {
       setInfoMessage('😡 Please enter a valid username 😡');
       return;
     }
 
-    //fake database from chatgpt :)
-    const mockDatabase = {
-      "user1": {
-        "Follows": ["user2", "user3", "user4"],
-        "Following": ["user5", "user6"],
-        "Posts": ["Post 1: Hello World!", "Post 2: React is awesome!"]
-      },
-      "user2": {
-        "Follows": ["user1"],
-        "Following": ["user3", "user6"],
-        "Posts": ["Post 1: Learning React"]
-      }
-    };
+   
 
-    //this is what gets the info from the fake database
-    const userInfo = mockDatabase[username.toLowerCase()]
-    
-    //This handles the case if the user isnt in the database im sure u can update this easily to include ur actual db
-    if(!userInfo){
-      setInfoMessage('😡User is not found!😡')
-      setUserData([]); //this will clear the table if there isnt a username found
-      return;
-    }
-    
-    setUserData(userInfo[checkInfo] || []); //this is what sets the username that the table will use \
-    setInfoMessage(`Showing ${checkInfo} for user ${username}`); 
-    setUsername(''); //this is how u clearn the entry box afterwards
-  };
+    try {
+        const response = await fetch(`http://54.147.244.63:8000/api/user/${username}/${checkInfo}`);
+        console.log(`Fetching: http://54.147.244.63:8000/api/user/${username}/${checkInfo}`);
+        const data = await response.json();
+        console.log(`API Response: `, data);
+        if (!response.ok) {
+            throw new Error('User not found!');
+        }
+
+       setUserData(data);
+       setInfoMessage(`Showing ${checkInfo} for user ${username}`);
+       setUsername('');
+    }  catch (error) {
+       setInfoMessage(`😡 ${error.message} 😡`);
+       setUserData([]);
+   }
+};
+
 
 
   //this is where ur html goes/how u format the page incase u wondering 
