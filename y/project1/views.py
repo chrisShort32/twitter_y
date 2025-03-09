@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from django.shortcuts import render
 from .models import Users, Posts, Follows
 from rest_framework.response import Response
-from .serializers import UserSerializer
+from .serializers import UserSerializer, FollowSerializer
 from rest_framework import status
 from rest_framework.views import APIView
 from django.http import JsonResponse
@@ -82,3 +82,38 @@ def get_user_posts(request, username):
 
     posts = Post.objects.filter(user=user).values()
     return JsonResponse(list(posts), safe=False)
+
+class AllUsersView(APIView):
+    def get(self, request):
+        users = Users.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+
+class AllFollowsView(APIView):
+    def get(self, request):
+        follows = Follows.objects.all()
+        serializer = FollowSerializer(follows, many=True)
+        return Response(serializer.data)
+
+def get_username_by_user_id(request, user_id):
+    try:
+        user = Users.objects.get(user_id=user_id)
+        return JsonResponse({'username': user.username})
+    except Users.DoesNotExist:
+        return JsonResponse({'error': 'User not found!'}, status=404)
+
+def get_usernames_for_follow(request, follow_id):
+    try:
+        follow = Follows.objects.get(id=follow_id)
+        user = Users.objects.get(user_id=follow.user.user_id)
+        following_user = Users.objects.get(user_id=follow.following_user.user_id)
+        return JsonResponse({
+            'user_id': follow.user.user_id,
+            'username': user.username,
+            'following_user_id': follow.following_user.user_id,
+            'following_username': following_user.username
+        })
+    except Follows.DoesNotExist:
+        return JsonResponse({'error': 'Follow relationship not found!'}, status=404)
+    except Users.DoesNotExist:
+        return JsonResponse({'error': 'User not found!'}, status=404)
