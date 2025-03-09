@@ -104,16 +104,37 @@ def get_username_by_user_id(request, user_id):
 
 def get_usernames_for_follow(request, follow_id):
     try:
-        follow = Follows.objects.get(id=follow_id)
-        user = Users.objects.get(user_id=follow.user.user_id)
-        following_user = Users.objects.get(user_id=follow.following_user.user_id)
-        return JsonResponse({
-            'user_id': follow.user.user_id,
-            'username': user.username,
-            'following_user_id': follow.following_user.user_id,
-            'following_username': following_user.username
-        })
-    except Follows.DoesNotExist:
-        return JsonResponse({'error': 'Follow relationship not found!'}, status=404)
+        # The Follows model doesn't have an 'id' field, so we need to find a follow relationship
+        # where either user_id or following_user_id matches the provided follow_id
+        follows = Follows.objects.filter(user_id=follow_id)
+        
+        if follows.exists():
+            # Get the first matching follow relationship
+            follow = follows.first()
+            user = Users.objects.get(user_id=follow.user_id)
+            following_user = Users.objects.get(user_id=follow.following_user_id)
+            
+            return JsonResponse({
+                'user_id': follow.user_id,
+                'username': user.username,
+                'following_user_id': follow.following_user_id,
+                'following_username': following_user.username
+            })
+        else:
+            # Try finding a follow relationship where the user is being followed
+            follows = Follows.objects.filter(following_user_id=follow_id)
+            if follows.exists():
+                follow = follows.first()
+                user = Users.objects.get(user_id=follow.user_id)
+                following_user = Users.objects.get(user_id=follow.following_user_id)
+                
+                return JsonResponse({
+                    'user_id': follow.user_id,
+                    'username': user.username,
+                    'following_user_id': follow.following_user_id,
+                    'following_username': following_user.username
+                })
+            else:
+                return JsonResponse({'error': 'No follow relationship found for this ID!'}, status=404)
     except Users.DoesNotExist:
         return JsonResponse({'error': 'User not found!'}, status=404)
